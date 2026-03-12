@@ -1,0 +1,2289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WebMeiChat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #3B82F6;
+            --primary-dark: #1D4ED8;
+            --primary-light: #60A5FA;
+            --primary-glow: rgba(59, 130, 246, 0.3);
+            --primary-bg: rgba(59, 130, 246, 0.1);
+            --dark-bg: #0F172A;
+            --dark-card: #1E293B;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+        }
+        
+        html, body, #app {
+            height: 100%;
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        #screen-container {
+            position: relative;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        
+        .screen-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.3s ease-in-out;
+            background-color: var(--dark-bg);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .screen-enter-start {
+            transform: translateX(100%);
+        }
+        .screen-enter-end {
+            transform: translateX(0);
+        }
+        .screen-leave-end {
+            transform: translateX(-100%);
+        }
+        
+        .primary-button {
+            background: linear-gradient(135deg, #3B82F6, #0EA5E9);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            border: none;
+            cursor: pointer;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .primary-button:hover {
+            background: linear-gradient(135deg, #2563EB, #38BDF8);
+            transform: translateY(-2px);
+        }
+        
+        .primary-button:active {
+            transform: translateY(0);
+        }
+        
+        .primary-button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .secondary-button {
+            background-color: var(--dark-card);
+            color: var(--text-primary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: 1px solid #334155;
+            cursor: pointer;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .secondary-button:hover {
+            background-color: #334155;
+            border-color: #3B82F6;
+        }
+        
+        .active-tab {
+            color: #3B82F6 !important;
+            background-color: rgba(59, 130, 246, 0.15) !important;
+            border-radius: 0.75rem;
+            position: relative;
+        }
+        
+        .active-tab::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 25%;
+            width: 50%;
+            height: 3px;
+            background: linear-gradient(90deg, #3B82F6, #0EA5E9);
+            border-radius: 3px;
+        }
+        
+        .loading-circle {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            border-color: #fff transparent #fff transparent;
+            animation: spin 1.2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .messages-container {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 1rem;
+            flex-grow: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .message-bubble {
+            max-width: 85%;
+            padding: 0.75rem 1rem;
+            border-radius: 1.2rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            word-break: break-word;
+            white-space: pre-wrap;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        
+        .message-incoming {
+            background-color: var(--dark-card);
+            align-self: flex-start;
+            border-top-left-radius: 0.2rem;
+        }
+        
+        .message-outgoing {
+            background: linear-gradient(135deg, #3B82F6, #0EA5E9);
+            color: white;
+            align-self: flex-end;
+            border-top-right-radius: 0.2rem;
+        }
+        
+        .message-system {
+            background-color: #475569;
+            color: #CBD5E1;
+            font-size: 0.8rem;
+            border-radius: 0.75rem;
+            padding: 0.5rem 1rem;
+            max-width: 100%;
+            margin: 0.5rem auto;
+            text-align: center;
+        }
+        
+        .date-separator {
+            text-align: center;
+            margin: 1rem 0;
+            position: relative;
+        }
+        
+        .date-separator-line {
+            display: inline-block;
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--text-secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            padding: 1rem;
+        }
+        
+        .modal-content {
+            background-color: var(--dark-card);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            width: 100%;
+            max-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid #334155;
+        }
+        
+        .modal.hidden {
+            display: none;
+        }
+        
+        .message-with-avatar {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .message-with-avatar .avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+            cursor: pointer;
+            border: 2px solid var(--dark-card);
+        }
+        
+        .input-field {
+            background-color: var(--dark-card);
+            border: 1px solid #334155;
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            width: 100%;
+            transition: all 0.2s;
+            font-size: 16px;
+            min-height: 44px;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        .card {
+            background-color: var(--dark-card);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            border: 1px solid #334155;
+        }
+        
+        .avatar-preview {
+            width: 6rem;
+            height: 6rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--dark-card);
+        }
+        
+        .tab-bar {
+            background-color: var(--dark-bg);
+            border-top: 1px solid #334155;
+            padding: 0.5rem;
+            position: sticky;
+            bottom: 0;
+            z-index: 40;
+            backdrop-filter: blur(10px);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #3B82F6, #0EA5E9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+        }
+        
+        .chat-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background-color: var(--dark-card);
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            cursor: pointer;
+            min-height: 60px;
+        }
+        
+        .chat-item:hover {
+            background-color: #334155;
+            border-color: #3B82F6;
+        }
+        
+        .gift-item {
+            background: linear-gradient(135deg, var(--dark-card), #1E293B);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+        }
+        
+        .gift-item:hover {
+            transform: translateY(-2px);
+            border-color: #3B82F6;
+        }
+        
+        .inventory-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background-color: var(--dark-card);
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #334155;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #334155;
+            background: linear-gradient(135deg, #3B82F6, #0EA5E9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stars-badge {
+            background: linear-gradient(135deg, #3B82F6, #0EA5E9);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+        }
+        
+        .channel-item, .group-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--dark-card), #1E293B);
+            border-radius: 1rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .channel-item:hover, .group-item:hover {
+            border-color: #3B82F6;
+        }
+        
+        .admin-badge {
+            background: linear-gradient(135deg, #3B82F6, #0EA5E9);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .settings-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background-color: var(--dark-card);
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #334155;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #475569;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #3B82F6;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .member-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background-color: var(--dark-card);
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #334155;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .bot-chat {
+            background: linear-gradient(135deg, #1E40AF, #3B82F6);
+            border-left: 4px solid #3B82F6;
+        }
+        
+        .theme-light {
+            --dark-bg: #F8FAFC;
+            --dark-card: #FFFFFF;
+            --text-primary: #1E293B;
+            --text-secondary: #475569;
+        }
+        
+        .theme-oled {
+            --dark-bg: #000000;
+            --dark-card: #0A0A0A;
+            --text-primary: #FFFFFF;
+            --text-secondary: #A0A0A0;
+        }
+        
+        .theme-blue {
+            --dark-bg: #0F1A2F;
+            --dark-card: #1A2B4A;
+            --text-primary: #E2E8F0;
+            --text-secondary: #94A3B8;
+        }
+        
+        .theme-dark {
+            --dark-bg: #0F172A;
+            --dark-card: #1E293B;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+        }
+        
+        .blocked-user-item {
+            background: linear-gradient(135deg, #7F1D1D, #3B82F6);
+            border-left: 4px solid #3B82F6;
+        }
+        
+        #scroll-to-bottom-btn {
+            background: linear-gradient(135deg, #3B82F6, #0EA5E9);
+            color: white;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            border: 2px solid var(--dark-card);
+            font-size: 18px;
+            position: fixed;
+            bottom: 120px;
+            right: 16px;
+        }
+        
+        #scroll-to-bottom-btn.visible {
+            opacity: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .section-title {
+                font-size: 1.25rem;
+                padding: 0.5rem 1rem;
+            }
+            .message-bubble {
+                max-width: 90%;
+                padding: 0.5rem 0.75rem;
+            }
+            #scroll-to-bottom-btn {
+                bottom: 100px;
+                right: 12px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+        
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        .ios-fixed-fix {
+            transform: translateZ(0);
+        }
+    </style>
+</head>
+<body class="no-select">
+    <div id="app" class="flex flex-col h-full ios-fixed-fix">
+        <div id="screen-container" class="flex-grow better-scroll"></div>
+
+        <div id="tab-bar" class="tab-bar transition-all duration-300 flex-shrink-0 ios-fixed-fix">
+            <div class="flex justify-around text-xs">
+                <button data-tab="chats_list" class="tab-button flex flex-col items-center p-2 rounded-lg transition-colors hover:bg-slate-800 active-tab relative">
+                    <span class="text-xl mb-1">💬</span>
+                    <span>Чаты</span>
+                </button>
+                <button data-tab="add_chat" class="tab-button flex flex-col items-center p-2 rounded-lg transition-colors hover:bg-slate-800 relative">
+                    <span class="text-xl mb-1">➕</span>
+                    <span>Новый</span>
+                </button>
+                <button data-tab="notifications" class="tab-button flex flex-col items-center p-2 rounded-lg transition-colors hover:bg-slate-800 relative">
+                    <span class="text-xl mb-1">🔔</span>
+                    <span>Уведом.</span>
+                    <span id="notification-badge" class="notification-badge hidden">0</span>
+                </button>
+                <button data-tab="news" class="tab-button flex flex-col items-center p-2 rounded-lg transition-colors hover:bg-slate-800">
+                    <span class="text-xl mb-1">📰</span>
+                    <span>Новости</span>
+                </button>
+                <button data-tab="channels_groups" class="tab-button flex flex-col items-center p-2 rounded-lg transition-colors hover:bg-slate-800">
+                    <span class="text-xl mb-1">📢</span>
+                    <span>Сообщ.</span>
+                </button>
+                <button data-tab="shop" class="tab-button flex flex-col items-center p-2 rounded-lg transition-colors hover:bg-slate-800">
+                    <span class="text-xl mb-1">⭐</span>
+                    <span>Магазин</span>
+                </button>
+                <button data-tab="profile" class="tab-button flex flex-col items-center p-2 rounded-lg transition-colors hover:bg-slate-800">
+                    <span class="text-xl mb-1">👤</span>
+                    <span>Профиль</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="custom-modal" class="modal hidden">
+        <div class="modal-content text-center">
+            <h3 id="modal-title" class="text-xl font-bold mb-3 gradient-text"></h3>
+            <p id="modal-message" class="mb-5 text-slate-300"></p>
+            <button id="modal-ok-button" class="primary-button w-full">ОК</button>
+            <div id="modal-confirm-buttons" class="flex justify-between hidden mt-3">
+                <button id="modal-cancel-button" class="secondary-button w-[48%]">Отмена</button>
+                <button id="modal-confirm-button" class="primary-button w-[48%] bg-red-600 hover:bg-red-700">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="user-profile-modal" class="modal hidden">
+        <div class="modal-content text-center">
+            <button class="absolute top-2 right-4 text-3xl font-light text-slate-500 hover:text-slate-300 transition-colors" onclick="document.getElementById('user-profile-modal').classList.add('hidden')">&times;</button>
+            <img id="modal-profile-avatar" src="" alt="Аватар" class="avatar-preview mx-auto mb-3">
+            <h3 id="modal-profile-name" class="text-2xl font-bold text-white"></h3>
+            <p id="modal-profile-username" class="text-slate-400 mb-4"></p>
+            <p id="modal-profile-bio" class="text-l font-bold text-white"></p>
+            <h4 class="text-xl font-semibold mt-6 mb-3 border-b border-slate-700 pb-1">Подарки</h4>
+            <div id="modal-profile-gifts" class="grid grid-cols-4 gap-4 p-3 bg-slate-800 rounded-xl min-h-[50px]"></div>
+        </div>
+    </div>
+
+    <div id="channel-settings-modal" class="modal hidden">
+        <div class="modal-content text-left max-w-md max-h-[80vh] overflow-y-auto">
+            <button class="absolute top-2 right-4 text-3xl font-light text-slate-500 hover:text-slate-300 transition-colors" onclick="document.getElementById('channel-settings-modal').classList.add('hidden')">&times;</button>
+            <h3 id="channel-settings-title" class="text-xl font-bold mb-4 gradient-text">Настройки канала</h3>
+            <div id="channel-settings-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========== КОНФИГУРАЦИЯ ==========
+        const WORKER_URL = 'https://webmeichat-api.твой-аккаунт.workers.dev';
+        
+        let loginStage = 'loading'; 
+        let currentChatId = null;
+        let currentUser = {};
+        let chatsData = [];
+        let notifications = [];
+        let channels = [];
+        let groups = [];
+        let news = [];
+        let messagesPollInterval = null;
+        let notificationsPollInterval = null;
+        const chatPollRate = 2000;
+        const notificationsPollRate = 5000;
+
+        const GIFTS_STORE = {
+            'bear': { emoji: '🐻', price: 10, name: 'Мишка' },
+            'heart': { emoji: '❤️', price: 15, name: 'Сердце' },
+            'champagne': { emoji: '🍾', price: 20, name: 'Шампанское' },
+            'casino': { emoji: '🎰', price: 8000, name: 'Казино' },
+            'cat': { emoji: '😻', price: 50, name: 'Котик' },
+            'lemon': { emoji: '🍋', price: 200, name: 'Лимон' },
+            'duck': { emoji: '🦆', price: 20, name: 'Утка' },
+            'burger': { emoji: '🍔', price: 500, name: 'Бургер' },
+            'santa': { emoji: '🎅', price: 100, name: 'Санта' },
+            'halloween': { emoji: '🎃', price: 300, name: 'Буу...' },
+            'agermester': { emoji: '🥃', price: 500, name: 'Ягерместер' },
+            'tablet': { emoji: '💻', price: 40, name: 'Ноутбук' },
+            'graphic': { emoji: '📈', price: 30, name: 'График' },
+            'panda': { emoji: '🐼', price: 60, name: 'Панда' },
+            'turtle': { emoji: '🐢', price: 25, name: 'Черепаха' },
+            'ninja': { emoji: '🥷', price: 35, name: 'Ниндзя' },
+            'tree': { emoji: '🎄', price: 100, name: 'Ёлка' },
+            'diamond': { emoji: '💎', price: 100, name: 'Бриллиант' },
+            'first': { emoji: '🏆', price: 100, name: 'Кубок' },
+            'ghost': { emoji: '👻', price: 5, name: 'Призрак' },
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('Mei_theme') || 'dark';
+            applyTheme(savedTheme);
+            checkAuthAndRoute();
+        });
+
+        // ========== ФУНКЦИЯ ДЛЯ РАБОТЫ С CLOUDFLARE ==========
+        async function apiRequest(action, data = {}, isForm = false) {
+            console.log('📡 Отправляем на Cloudflare:', action, data);
+            
+            try {
+                const formData = new FormData();
+                formData.append('action', action);
+                
+                if (isForm && data instanceof FormData) {
+                    if (!data.has('action')) {
+                        data.append('action', action);
+                    }
+                    const response = await fetch(WORKER_URL, {
+                        method: 'POST',
+                        body: data
+                    });
+                    return await response.json();
+                } else {
+                    for (let key in data) {
+                        formData.append(key, data[key]);
+                    }
+                    const response = await fetch(WORKER_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    return await response.json();
+                }
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                showModal('Ошибка', 'Не удалось связаться с сервером');
+                return { success: false, error: error.message };
+            }
+        }
+
+        function showModal(title, message, isConfirm = false, onConfirm = null) {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').innerHTML = message;
+
+            document.getElementById('modal-ok-button').classList.toggle('hidden', isConfirm);
+            document.getElementById('modal-confirm-buttons').classList.toggle('hidden', !isConfirm);
+
+            if (!isConfirm && onConfirm) {
+                document.getElementById('modal-ok-button').onclick = () => {
+                    modal.classList.add('hidden');
+                    onConfirm();
+                };
+            } else if (!isConfirm && !onConfirm) {
+                document.getElementById('modal-ok-button').onclick = () => {
+                    modal.classList.add('hidden');
+                };
+            }
+            
+            if (isConfirm) {
+                document.getElementById('modal-confirm-button').onclick = () => {
+                    modal.classList.add('hidden');
+                    if (onConfirm) onConfirm();
+                };
+                document.getElementById('modal-cancel-button').onclick = () => {
+                    modal.classList.add('hidden');
+                };
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function changeTheme(theme) {
+            localStorage.setItem('Mei_theme', theme);
+            applyTheme(theme);
+        }
+
+        function applyTheme(theme) {
+            const root = document.documentElement;
+            root.classList.remove('theme-dark', 'theme-light', 'theme-oled', 'theme-blue');
+            root.classList.add(`theme-${theme}`);
+        }
+
+        async function blockUser(targetUserId, targetUserName) {
+            const reason = prompt(`Введите причину блокировки пользователя ${targetUserName}:`, 'Нарушение правил');
+            if (reason === null) return;
+            if (!reason.trim()) {
+                showModal('Ошибка', 'Необходимо указать причину блокировки.');
+                return;
+            }
+            const result = await apiRequest('block_user', {
+                target_user_id: targetUserId,
+                reason: reason.trim()
+            });
+            if (result.success) {
+                showModal('Успех', `Пользователь ${targetUserName} заблокирован.`);
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось заблокировать пользователя.');
+            }
+        }
+
+        async function unblockUser(targetUserId, targetUserName) {
+            showModal(
+                'Разблокировать пользователя?',
+                `Вы уверены, что хотите разблокировать пользователя <strong>${targetUserName}</strong>?`,
+                true,
+                async () => {
+                    const result = await apiRequest('unblock_user', { target_user_id: targetUserId });
+                    if (result.success) {
+                        showModal('Успех', `Пользователь ${targetUserName} разблокирован.`);
+                    } else {
+                        showModal('Ошибка', result.error || 'Не удалось разблокировать пользователя.');
+                    }
+                }
+            );
+        }
+
+        async function showBlockedUsers() {
+            const result = await apiRequest('get_blocked_users');
+            if (result.success) {
+                const modal = document.getElementById('custom-modal');
+                document.getElementById('modal-title').textContent = 'Заблокированные пользователи';
+                
+                let blockedUsersHtml = '';
+                if (result.blocked_users.length > 0) {
+                    blockedUsersHtml = result.blocked_users.map(user => `
+                        <div class="member-item">
+                            <div class="flex items-center">
+                                <img src="${user.avatar}" alt="Аватар" class="w-10 h-10 rounded-full mr-3">
+                                <div>
+                                    <p class="font-semibold">${user.name}</p>
+                                    <p class="text-sm text-slate-400">@${user.username}</p>
+                                    <p class="text-xs text-red-400">Причина: ${user.block_reason}</p>
+                                    <p class="text-xs text-slate-500">Заблокировал: ${user.blocked_by} • ${user.blocked_at_formatted}</p>
+                                </div>
+                            </div>
+                            <button class="primary-button bg-green-600 hover:bg-green-700 text-sm px-3 py-1" 
+                                    onclick="unblockUser('${user.id}', '${user.name.replace(/'/g, "\\'")}')">
+                                Разблокировать
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    blockedUsersHtml = '<p class="text-slate-400 text-center py-4">Нет заблокированных пользователей.</p>';
+                }
+                
+                document.getElementById('modal-message').innerHTML = `
+                    <div class="max-h-96 overflow-y-auto">
+                        ${blockedUsersHtml}
+                    </div>
+                `;
+                
+                document.getElementById('modal-ok-button').classList.remove('hidden');
+                document.getElementById('modal-confirm-buttons').classList.add('hidden');
+                document.getElementById('modal-ok-button').onclick = () => {
+                    modal.classList.add('hidden');
+                };
+                
+                modal.classList.remove('hidden');
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось загрузить список заблокированных пользователей.');
+            }
+        }
+
+        function createInviteLink(type, username) {
+            const baseUrl = window.location.origin + window.location.pathname;
+            return `${baseUrl}?join=${type}:${username}`;
+        }
+
+        function copyJoinLink(username, type) {
+            const joinUrl = createInviteLink(type, username);
+            navigator.clipboard.writeText(joinUrl).then(() => {
+                showModal('Ссылка скопирована!', `Ссылка для присоединения скопирована в буфер обмена: ${joinUrl}`, false);
+            }).catch(() => {
+                showModal('Ошибка', 'Не удалось скопировать ссылку.');
+            });
+        }
+
+        function handleJoinLinks() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const joinParam = urlParams.get('join');
+            if (joinParam) {
+                const [type, username] = joinParam.split(':');
+                if (type && username) {
+                    showModal('Присоединение к сообществу', `Вы хотите присоединиться к сообществу @${username}?`, true, () => {
+                        joinCommunityByUsername(username);
+                        const newUrl = window.location.pathname;
+                        window.history.replaceState({}, document.title, newUrl);
+                    });
+                }
+            }
+        }
+
+        function renderNewsView() {
+            const html = `
+                <div id="news_view" class="p-4 flex flex-col h-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="section-title">Новости</h2>
+                        ${currentUser.is_moderator ? `
+                            <button onclick="showCreateNewsModal()" class="primary-button text-sm">
+                                📝 Выложить новость
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div id="news-list" class="space-y-4 flex-grow overflow-y-auto">
+                        <p class="text-slate-400 text-center py-8">Загрузка новостей...</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="news_screen_content" class="screen-content">${html}</div>`;
+            fetchNews();
+        }
+
+        function showCreateNewsModal() {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = 'Создать новость';
+            document.getElementById('modal-message').innerHTML = `
+                <div class="space-y-3">
+                    <input type="text" id="news-title" placeholder="Заголовок новости" class="input-field" maxlength="100">
+                    <textarea id="news-content" placeholder="Содержание новости" class="input-field h-32 resize-none" maxlength="1000"></textarea>
+                </div>
+            `;
+            document.getElementById('modal-ok-button').classList.add('hidden');
+            document.getElementById('modal-confirm-buttons').classList.remove('hidden');
+            document.getElementById('modal-confirm-button').textContent = 'Опубликовать';
+            document.getElementById('modal-confirm-button').onclick = () => {
+                const title = document.getElementById('news-title').value.trim();
+                const content = document.getElementById('news-content').value.trim();
+                if (title.length < 2 || content.length < 5) {
+                    showModal('Ошибка', 'Заголовок (2+) и содержание (5+) обязательны.');
+                    return;
+                }
+                modal.classList.add('hidden');
+                createNews(title, content);
+            };
+            document.getElementById('modal-cancel-button').onclick = () => {
+                modal.classList.add('hidden');
+            };
+            modal.classList.remove('hidden');
+        }
+
+        async function createNews(title, content) {
+            const result = await apiRequest('create_news', { title, content });
+            if (result.success) {
+                showModal('Успех!', 'Новость успешно опубликована!', false, () => {
+                    fetchNews();
+                    switchScreen('news');
+                });
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось создать новость.');
+            }
+        }
+
+        async function fetchNews() {
+            const result = await apiRequest('get_news');
+            if (result.success) {
+                news = result.news;
+                renderNewsList();
+            }
+        }
+
+        function renderNewsList() {
+            const newsList = document.getElementById('news-list');
+            if (!newsList) return;
+            if (news.length === 0) {
+                newsList.innerHTML = '<p class="text-slate-400 text-center py-8">Новостей пока нет.</p>';
+                return;
+            }
+            const newsHtml = news.map(newsItem => {
+                const date = new Date(newsItem.created_at * 1000).toLocaleString();
+                return `
+                    <div class="news-item">
+                        <div class="news-header">
+                            <div class="news-author">
+                                <img src="${newsItem.author_avatar}" alt="Аватар" class="w-10 h-10 rounded-full mr-3">
+                                <div>
+                                    <h3 class="font-bold">${newsItem.author_name}</h3>
+                                    <p class="text-sm text-slate-400">${date}</p>
+                                </div>
+                            </div>
+                            ${currentUser.is_moderator ? `
+                                <button onclick="confirmDeleteNews('${newsItem.id}', '${newsItem.title.replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-400">
+                                    🗑️
+                                </button>
+                            ` : ''}
+                        </div>
+                        <h4 class="text-xl font-bold mb-3 gradient-text">${newsItem.title}</h4>
+                        <div class="news-content">${newsItem.content.replace(/\n/g, '<br>')}</div>
+                        <div class="news-footer">
+                            <span>👁️ ${newsItem.views || 0} просмотров</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            newsList.innerHTML = newsHtml;
+        }
+
+        function confirmDeleteNews(newsId, newsTitle) {
+            showModal('Удалить новость?', `Вы уверены, что хотите удалить новость "<strong>${newsTitle}</strong>"?`, true, () => deleteNews(newsId));
+        }
+
+        async function deleteNews(newsId) {
+            const result = await apiRequest('delete_news', { news_id: newsId });
+            if (result.success) {
+                showModal('Успех', 'Новость удалена.', false, fetchNews);
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось удалить новость.');
+            }
+        }
+
+        async function checkUsername() {
+            const username = document.getElementById('username').value.toLowerCase().trim();
+            const password = document.getElementById('password').value;
+            const button = document.getElementById('auth-button');
+            if (username.length < 3 || password.length < 6) {
+                document.getElementById('auth-message').textContent = 'Логин (3+) и пароль (6+) обязательны.';
+                return;
+            }
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-circle"></span> Проверка...';
+            const result = await apiRequest('check_username', { username });
+            if (result.success) {
+                if (result.exists) {
+                    document.getElementById('auth-message').textContent = `Пользователь @${username} найден. Нажмите, чтобы войти.`;
+                    button.innerHTML = 'Войти';
+                    loginStage = 'login';
+                } else {
+                    document.getElementById('auth-message').textContent = `Пользователь @${username} не найден. Нажмите, чтобы зарегистрироваться.`;
+                    button.innerHTML = 'Зарегистрироваться';
+                    loginStage = 'register';
+                }
+            } else {
+                showModal('Ошибка', result.error || 'Произошла ошибка при проверке логина.');
+                button.innerHTML = 'Проверить логин';
+            }
+            button.disabled = false;
+        }
+
+        async function registerLogin() {
+            const username = document.getElementById('username').value.toLowerCase().trim();
+            const password = document.getElementById('password').value;
+            const button = document.getElementById('auth-button');
+            if (username.length < 3 || password.length < 6) {
+                document.getElementById('auth-message').textContent = 'Логин (3+) и пароль (6+) обязательны.';
+                return;
+            }
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-circle"></span> Вход...';
+            const result = await apiRequest('register_login', { username, password });
+            if (result.success) {
+                if (result.status === 'login') {
+                    showModal('Добро пожаловать!', `С возвращением, <strong>${result.name}</strong>!`, false, checkAuthAndRoute);
+                } else {
+                    showModal('Добро пожаловать!', `Аккаунт @${username} успешно зарегистрирован.`, false, checkAuthAndRoute);
+                }
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось войти/зарегистрироваться.');
+                button.innerHTML = 'Проверить логин';
+                button.disabled = false;
+            }
+        }
+
+        function renderWelcomeScreen() {
+            const html = `
+                <div id="welcome_view" class="flex flex-col items-center justify-center h-full p-6">
+                    <div class="text-center mb-8">
+                        <h1 class="text-4xl font-extrabold mb-2 gradient-text">WebMeiChat</h1>
+                        <p class="text-xl text-slate-300">Добро пожаловать!</p>
+                    </div>
+                    <div class="w-full max-w-sm space-y-4">
+                        <input type="text" id="username" placeholder="Логин (минимум 3 символа)"
+                               oninput="document.getElementById('auth-button').innerHTML = 'Проверить логин'; loginStage = 'loading'; document.getElementById('auth-message').textContent = '';"
+                               class="input-field">
+                        <input type="password" id="password" placeholder="Пароль (минимум 6 символов)"
+                               oninput="document.getElementById('auth-button').innerHTML = 'Проверить логин'; loginStage = 'loading'; document.getElementById('auth-message').textContent = '';"
+                               class="input-field">
+                        <p id="auth-message" class="text-center text-sm text-red-400 h-5"></p>
+                        <button id="auth-button" class="primary-button w-full" onclick="handleAuthClick()">Проверить логин</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="welcome_screen_content" class="screen-content">${html}</div>`;
+            loginStage = 'loading';
+        }
+
+        function handleAuthClick() {
+            if (loginStage === 'loading') {
+                checkUsername();
+            } else {
+                registerLogin();
+            }
+        }
+
+        function renderSetupScreen() {
+            const html = `
+                <div id="setup_view" class="flex flex-col items-center justify-center h-full p-6">
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl font-bold mb-2 gradient-text">Настройка профиля</h1>
+                        <p class="text-slate-300">Укажите ваше отображаемое имя и аватарку.</p>
+                    </div>
+                    <div class="w-full max-w-sm space-y-4 text-center">
+                        <img id="avatar-preview" src="${currentUser.avatar || 'default.png'}" alt="Аватар" class="avatar-preview mx-auto mb-4">
+                        <input type="file" id="avatar-upload" accept="image/*" class="hidden" onchange="previewAvatar(this.files[0])">
+                        <label for="avatar-upload" class="secondary-button cursor-pointer inline-block">Выбрать аватар</label>
+                        <input type="text" id="display-name" placeholder="Отображаемое имя" value="${currentUser.name || ''}" maxlength="30" class="input-field">
+                        <p id="setup-status" class="text-center text-sm text-red-400 h-5"></p>
+                        <button id="setup-button" class="primary-button w-full" onclick="completeSetup()">Завершить настройку</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="setup_screen_content" class="screen-content">${html}</div>`;
+        }
+
+        function previewAvatar(file) {
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('avatar-preview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function completeSetup() {
+            const name = document.getElementById('display-name').value.trim();
+            const avatarFile = document.getElementById('avatar-upload').files[0];
+            const button = document.getElementById('setup-button');
+            const statusText = document.getElementById('setup-status');
+            if (name.length < 1) {
+                statusText.textContent = 'Имя не может быть пустым.';
+                return;
+            }
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-circle"></span> Сохранение...';
+            statusText.textContent = '';
+            const formData = new FormData();
+            formData.append('action', 'complete_setup');
+            formData.append('name', name);
+            if (avatarFile) {
+                formData.append('avatar', avatarFile);
+            }
+            const result = await apiRequest('complete_setup', formData, true);
+            if (result.success) {
+                showModal('Успех!', `Профиль <strong>${name}</strong> настроен.`, false, checkAuthAndRoute);
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось завершить настройку профиля.');
+                button.innerHTML = 'Завершить настройку';
+                button.disabled = false;
+            }
+        }
+
+        async function logout() {
+            await apiRequest('logout');
+            currentUser = {};
+            currentChatId = null;
+            if (messagesPollInterval) clearInterval(messagesPollInterval);
+            if (notificationsPollInterval) clearInterval(notificationsPollInterval);
+            switchScreen('welcome');
+        }
+
+        async function fetchChats() {
+            const result = await apiRequest('get_chats');
+            if (result.success) {
+                chatsData = result.chats;
+                if (currentScreen === 'chats_list') {
+                    renderChatsList();
+                }
+            }
+        }
+
+        function renderChatsList() {
+            const sortedChats = [...chatsData].sort((a, b) => {
+                if (a.type === 'general') return -1;
+                if (b.type === 'general') return 1;
+                const aIsBot = a.name.includes('Mei') || a.name.includes('MEI');
+                const bIsBot = b.name.includes('Mei') || b.name.includes('MEI');
+                if (aIsBot && !bIsBot) return -1;
+                if (!aIsBot && bIsBot) return 1;
+                if (a.type === 'bot' && b.type !== 'bot') return 1;
+                if (b.type === 'bot' && a.type !== 'bot') return -1;
+                return (b.last_timestamp || 0) - (a.last_timestamp || 0);
+            });
+            
+            const chatsHtml = sortedChats.map(chat => {
+                const lastMessage = chat.last_message ? chat.last_message.substring(0, 50) + (chat.last_message.length > 50 ? '...' : '') : 'Нет сообщений';
+                const isBot = chat.type === 'bot';
+                const time = chat.last_timestamp ? new Date(chat.last_timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                const otherId = chat.other_id || null;
+                let icon = '💬';
+                if (chat.type === 'general') icon = '🌐';
+                if (chat.type === 'channel') icon = '📢';
+                if (chat.type === 'group') icon = '👥';
+                if (isBot) icon = '🤖';
+                return `
+                    <div class="chat-item ${isBot ? 'bot-chat' : ''}" 
+                         onclick="switchScreen('chat_view', { chatId: '${chat.id}', chatName: '${chat.name.replace(/'/g, "\\'")}', chatType: '${chat.type}', interlocutorId: '${otherId}', isBotChat: ${isBot} })">
+                        <div class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center mr-3 flex-shrink-0 text-xl">${icon}</div>
+                        <div class="flex-grow min-w-0">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-bold truncate text-white">${chat.name} ${chat.member_count ? `(${chat.member_count})` : ''} ${chat.is_admin ? '<span class="admin-badge ml-1">Админ</span>' : ''}</h3>
+                                <span class="text-xs text-slate-400">${time}</span>
+                            </div>
+                            <p class="text-sm text-slate-400 truncate">${lastMessage}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        
+            const html = `
+                <div id="chats_list_view" class="p-4 flex flex-col h-full">
+                    <h2 class="section-title">Чаты</h2>
+                    <div id="chats-list-container" class="flex-grow overflow-y-auto">
+                        ${chatsHtml || '<p class="text-slate-400 text-center py-8">Нет чатов</p>'}
+                    </div>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="chats_list_screen_content" class="screen-content">${html}</div>`;
+        }
+
+        function renderChatView({ chatId, chatName, chatType, interlocutorId, isBotChat = false }) {
+            currentChatData = { chatId, chatName, chatType, interlocutorId, isBotChat };
+            const isPrivate = chatType === 'private';
+            const isChannel = chatType === 'channel';
+            const isGroup = chatType === 'group';
+            const isBot = isBotChat;
+            const displayChatName = isPrivate ? chatsData.find(c => c.id === chatId)?.name || chatName : chatName;
+            const isAdmin = isChannel && chatsData.find(c => c.id === chatId)?.is_admin;
+
+            const chatViewHTML = `
+                <div id="chat_view" class="flex flex-col h-full">
+                    <div class="flex items-center justify-between p-3 bg-slate-900 shadow-md flex-shrink-0">
+                        <button onclick="switchScreen('chats_list')" class="text-primary text-xl mr-3">←</button>
+                        <div class="flex items-center flex-grow min-w-0">
+                            <h2 class="text-xl font-bold truncate">${displayChatName} ${isChannel ? '📢' : ''}${isGroup ? '👥' : ''}${isBot ? ' 🤖' : ''}</h2>
+                            ${isChannel && isAdmin ? '<span class="admin-badge ml-2">Админ</span>' : ''}
+                        </div>
+                        ${isBot ? `<button class="primary-button text-sm ml-4 bg-blue-600 hover:bg-blue-700" onclick="showActiveSessions()">🔐 Сессии</button>` : ''}
+                        ${isChannel && isAdmin ? `<button class="text-primary text-sm ml-4" onclick="showChannelSettings('${chatId}', '${displayChatName.replace(/'/g, "\\'")}')">⚙️ Настройки</button>` : ''}
+                        ${!['general','channel','group'].includes(chatType) && !isBot ? `<button class="text-red-500 text-sm ml-4" onclick="confirmDeleteChat('${chatId}', '${displayChatName.replace(/'/g, "\\'")}')">Удалить</button>` : ''}
+                        ${isChannel || isGroup ? `<button class="text-red-500 text-sm ml-4" onclick="confirmLeaveCommunity('${chatId}', '${displayChatName.replace(/'/g, "\\'")}', '${chatType}')">Покинуть</button>` : ''}
+                    </div>
+                    <div id="message-list" class="messages-container flex-grow">
+                        <p class="text-slate-500 text-center py-4">Сообщений нет.</p>
+                    </div>
+                    <div id="scroll-to-bottom-btn" class="fixed bottom-24 right-4 bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer opacity-0 transition-opacity z-10 shadow-lg hover:bg-blue-700" onclick="scrollToBottom()" style="display: none;">↓</div>
+                    <form id="message-form" class="p-3 bg-slate-800 flex items-center flex-shrink-0" onsubmit="event.preventDefault(); sendMessage()" style="${isBot ? 'display: none;' : ''}">
+                        <input type="file" id="photo-upload" accept="image/*" class="hidden" onchange="document.getElementById('photo-label').textContent = this.files.length > 0 ? '🖼️ 1' : '🖼️';">
+                        <label for="photo-upload" id="photo-label" class="text-primary text-xl mr-2 p-2 cursor-pointer rounded-lg hover:bg-slate-700">🖼️</label>
+                        <input type="text" id="message-input" placeholder="${isChannel && !isAdmin ? 'Только администраторы могут писать' : 'Сообщение...'}" maxlength="200" class="input-field flex-grow" ${isChannel && !isAdmin ? 'disabled' : ''}>
+                        <button type="submit" class="primary-button px-4 py-3 ml-2 rounded-full" ${isChannel && !isAdmin ? 'disabled' : ''}>Отправить</button>
+                    </form>
+                    ${isBot ? `<div class="p-4 bg-slate-800 text-center text-slate-400 text-sm">🤖 Это чат с ботом Mei. Вы не можете отправлять сообщения.</div>` : ''}
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="chat_view_screen_content" class="screen-content">${chatViewHTML}</div>`;
+            fetchMessages(chatId, true);
+            messagesPollInterval = setInterval(() => fetchMessages(chatId), chatPollRate);
+        }
+
+        function renderAddChatView() {
+            renderSearchUsersView('add_chat');
+        }
+
+        function renderSearchUsersView(mode, giftData = {}) {
+            const isGiftMode = mode === 'gift_search';
+            const title = isGiftMode ? `Поиск получателя ${giftData.emoji} ${giftData.name}` : 'Начать новый чат';
+            const selfGiftButton = isGiftMode ? `
+                <button class="primary-button w-full mt-4 bg-green-600 hover:bg-green-700" 
+                        onclick="sendGiftToRecipient('${currentUser.id}', '${giftData.key}', '${giftData.emoji}', '${giftData.name}', '${currentUser.name}')">
+                    🎁 Подарить СЕБЕ
+                </button>
+                <p class="text-slate-400 text-center my-3 border-b border-slate-700 pb-2">Или найдите другого пользователя:</p>
+            ` : '';
+            const html = `
+                <div id="${mode}_view" class="p-4 flex flex-col h-full">
+                    <h2 class="section-title">${title}</h2>
+                    ${selfGiftButton}
+                    <input type="text" id="search-input" placeholder="Введите логин или имя..." oninput="searchUsers('${mode}', '${giftData.key || ''}', '${giftData.emoji || ''}', '${giftData.name || ''}')" class="input-field mb-4">
+                    <div id="search-results" class="space-y-2 flex-grow overflow-y-auto">
+                        <p class="text-slate-400 text-center py-8">Начните вводить текст для поиска.</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="${mode}_screen_content" class="screen-content">${html}</div>`;
+        }
+
+        async function searchUsers(mode, giftKey, giftEmoji, giftName) {
+            const query = document.getElementById('search-input').value.trim();
+            const resultsContainer = document.getElementById('search-results');
+            if (query.length < 2) {
+                resultsContainer.innerHTML = '<p class="text-slate-400 text-center py-8">Начните вводить текст.</p>';
+                return;
+            }
+            resultsContainer.innerHTML = '<p class="text-center py-4"><span class="loading-circle"></span> Поиск...</p>';
+            const result = await apiRequest('search_users', { query });
+            if (result.success && result.users.length > 0) {
+                const usersHtml = result.users.map(user => {
+                    const buttonAction = mode === 'add_chat' 
+                        ? `createPrivateChat('${user.id}', '${user.name.replace(/'/g, "\\'")}')` 
+                        : `sendGiftToRecipient('${user.id}', '${giftKey}', '${giftEmoji}', '${giftName}', '${user.name.replace(/'/g, "\\'")}')`;
+                    const buttonText = mode === 'add_chat' ? 'Начать чат' : 'Подарить';
+                    return `
+                        <div class="card flex items-center justify-between">
+                            <div class="flex items-center">
+                                <img src="${user.avatar}" alt="Аватар" class="w-12 h-12 rounded-full object-cover mr-3">
+                                <div>
+                                    <h4 class="font-bold">${user.name}</h4>
+                                    <p class="text-sm text-slate-400">@${user.username}</p>
+                                </div>
+                            </div>
+                            <button class="primary-button px-4 py-2 text-sm" onclick="${buttonAction}">${buttonText}</button>
+                        </div>
+                    `;
+                }).join('');
+                resultsContainer.innerHTML = usersHtml;
+            } else {
+                resultsContainer.innerHTML = '<p class="text-red-400 text-center py-8">Пользователи не найдены.</p>';
+            }
+        }
+
+        async function createPrivateChat(targetUserId, targetName) {
+            const result = await apiRequest('create_private_chat', { target_user_id: targetUserId });
+            if (result.success) {
+                showModal('Чат создан', `Вы начали чат с <strong>${targetName}</strong>.`, false, () => {
+                    fetchChats().then(() => {
+                        const newChat = chatsData.find(c => c.id === result.chat_id);
+                        if (newChat) {
+                            switchScreen('chat_view', { 
+                                chatId: newChat.id, 
+                                chatName: newChat.name, 
+                                chatType: newChat.type, 
+                                interlocutorId: newChat.other_id, 
+                                interlocutorAvatar: newChat.avatar 
+                            });
+                        } else {
+                            switchScreen('chats_list');
+                        }
+                    });
+                });
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось создать чат.');
+            }
+        }
+
+        async function fetchMessages(chatId, shouldScroll = false) {
+            const result = await apiRequest('get_messages', { chat_id: chatId });
+            const messagesContainer = document.getElementById('message-list');
+            if (result.success) {
+                const messages = result.messages;
+                if (messagesContainer) {
+                    renderMessages(messages);
+                }
+                if (shouldScroll && messagesContainer) {
+                    setTimeout(() => messagesContainer.scrollTop = messagesContainer.scrollHeight, 100);
+                }
+            }
+        }
+
+        function renderMessages(messages) {
+            const list = document.getElementById('message-list');
+            if (!list) return;
+            
+            const oldScrollTop = list.scrollTop;
+            const oldScrollHeight = list.scrollHeight;
+            const wasAtBottom = oldScrollHeight - list.clientHeight - oldScrollTop < 100;
+            
+            let lastDate = null;
+            const today = new Date();
+            const todayStr = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth()+1).toString().padStart(2, '0')}.${today.getFullYear()}`;
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = `${yesterday.getDate().toString().padStart(2, '0')}.${(yesterday.getMonth()+1).toString().padStart(2, '0')}.${yesterday.getFullYear()}`;
+            
+            const messagesHtml = messages.map(msg => {
+                const msgDate = new Date(msg.timestamp * 1000);
+                const day = msgDate.getDate().toString().padStart(2, '0');
+                const month = (msgDate.getMonth()+1).toString().padStart(2, '0');
+                const year = msgDate.getFullYear();
+                const msgDateStr = `${day}.${month}.${year}`;
+                
+                let dateSep = '';
+                if (lastDate !== msgDateStr) {
+                    lastDate = msgDateStr;
+                    let displayDate = msgDateStr === todayStr ? 'Сегодня' : (msgDateStr === yesterdayStr ? 'Вчера' : `${day}.${month}.${year}`);
+                    dateSep = `<div class="date-separator"><span class="date-separator-line">${displayDate}</span></div>`;
+                }
+                
+                const isSystem = msg.type === 'system' || msg.type === 'system_gift';
+                const isOutgoing = msg.sender_id === currentUser.id;
+                const isBot = msg.sender_id === 'security_bot';
+                
+                if (isSystem) {
+                    return `${dateSep}<div class="message-bubble message-system text-center italic mt-2">${msg.content}</div>`;
+                }
+                
+                const content = msg.type === 'photo' ? `<img src="${msg.file_path}" alt="Фото" class="max-w-full rounded-lg" onclick="window.open(this.src)">` : msg.content;
+                const senderName = isOutgoing ? 'Вы' : (msg.sender_name || 'Бот');
+                const bubbleClass = isOutgoing ? 'message-outgoing' : 'message-incoming';
+                
+                if (isBot && (!msg.sender_avatar || msg.sender_avatar === 'bot.png')) {
+                    msg.sender_avatar = 'default.png';
+                }
+                
+                const showAvatar = (currentChatData.chatType === 'general' || currentChatData.chatType === 'channel' || currentChatData.chatType === 'group' || isBot) && !isOutgoing;
+                
+                if (showAvatar) {
+                    return `${dateSep}
+                        <div class="message-with-avatar">
+                            <img src="${msg.sender_avatar || 'default.png'}" alt="Аватар" class="avatar" ${!isBot ? `onclick="showUserProfileModal('${msg.sender_id}')"` : ''}>
+                            <div class="flex flex-col">
+                                <p class="text-xs font-semibold mb-1 text-slate-400">${senderName}</p>
+                                <div class="message-bubble ${bubbleClass}">${content}</div>
+                                <span class="text-xs text-slate-500 mt-1">${new Date(msg.timestamp * 1000).toLocaleTimeString()}</span>
+                            </div>
+                        </div>`;
+                } else {
+                    return `${dateSep}
+                        <div class="${isOutgoing ? 'flex justify-end' : 'flex justify-start'}">
+                            <div class="flex flex-col">
+                                <div class="message-bubble ${bubbleClass}">${content}</div>
+                                <span class="text-xs text-slate-500 mt-1 ${isOutgoing ? 'text-right' : 'text-left'}">${new Date(msg.timestamp * 1000).toLocaleTimeString()}</span>
+                            </div>
+                        </div>`;
+                }
+            }).join('');
+            
+            list.innerHTML = messagesHtml;
+            if (wasAtBottom) {
+                list.scrollTop = list.scrollHeight;
+            } else {
+                list.scrollTop = oldScrollTop + (list.scrollHeight - oldScrollHeight);
+            }
+            initScrollHandler();
+        }
+
+        function initScrollHandler() {
+            const list = document.getElementById('message-list');
+            const btn = document.getElementById('scroll-to-bottom-btn');
+            if (list && btn) {
+                list.addEventListener('scroll', () => {
+                    const scrollBottom = list.scrollHeight - list.clientHeight - list.scrollTop;
+                    if (scrollBottom < 100) {
+                        btn.style.opacity = '0';
+                        setTimeout(() => btn.style.display = 'none', 300);
+                    } else {
+                        btn.style.display = 'flex';
+                        setTimeout(() => btn.style.opacity = '1', 10);
+                    }
+                });
+            }
+        }
+
+        function scrollToBottom() {
+            const list = document.getElementById('message-list');
+            const btn = document.getElementById('scroll-to-bottom-btn');
+            if (list) {
+                list.scrollTop = list.scrollHeight;
+                if (btn) {
+                    btn.style.opacity = '0';
+                    setTimeout(() => btn.style.display = 'none', 300);
+                }
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const fileInput = document.getElementById('photo-upload');
+            const content = input.value.trim();
+            const photoFile = fileInput.files[0];
+            if (!content && !photoFile) {
+                showModal('Ошибка', 'Сообщение не может быть пустым.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('action', 'send_message');
+            formData.append('chat_id', currentChatId);
+            formData.append('content', content);
+            if (photoFile) {
+                formData.append('photo', photoFile);
+            }
+            const result = await apiRequest('send_message', formData, true);
+            if (result.success) {
+                input.value = '';
+                fileInput.value = '';
+                document.getElementById('photo-label').textContent = '🖼️';
+                fetchMessages(currentChatId);
+                fetchChats();
+            } else {
+                if (result.error && result.error.includes('заблокирован')) {
+                    showModal('Аккаунт заблокирован', result.error, false, logout);
+                } else {
+                    showModal('Ошибка', result.error || 'Не удалось отправить сообщение.');
+                }
+            }
+        }
+
+        function confirmDeleteChat(chatId, chatName) {
+            showModal('Удалить чат?', `Вы уверены, что хотите удалить чат с <strong>${chatName}</strong>?`, true, () => deleteChat(chatId));
+        }
+
+        async function deleteChat(chatId) {
+            const result = await apiRequest('delete_chat', { chat_id: chatId });
+            if (result.success) {
+                showModal('Успех', 'Чат удален.', false, () => switchScreen('chats_list'));
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось удалить чат.');
+            }
+        }
+
+        async function fetchNotifications() {
+            const result = await apiRequest('get_notifications');
+            if (result.success) {
+                notifications = result.notifications;
+                updateNotificationBadge();
+                if (currentScreen === 'notifications') {
+                    renderNotificationsView();
+                }
+            }
+        }
+
+        function updateNotificationBadge() {
+            const unreadCount = notifications.filter(n => !n.read).length;
+            const badge = document.getElementById('notification-badge');
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function renderNotificationsView() {
+            const html = notifications.length > 0 ? 
+                notifications.map(n => `
+                    <div class="card mb-3 ${n.read ? 'opacity-70' : 'border-l-4 border-primary'}">
+                        <div class="flex justify-between">
+                            <div>
+                                <h4 class="font-bold">${n.title}</h4>
+                                <p class="text-sm">${n.message}</p>
+                                <p class="text-xs text-slate-500 mt-2">${new Date(n.timestamp * 1000).toLocaleString()}</p>
+                            </div>
+                            ${!n.read ? `<button onclick="markNotificationAsRead('${n.id}')" class="primary-button text-sm px-3 py-1 ml-2">Прочитано</button>` : ''}
+                        </div>
+                    </div>
+                `).join('') : '<p class="text-slate-400 text-center py-8">Нет уведомлений</p>';
+            document.getElementById('screen-container').innerHTML = `<div class="screen-content p-4"><h2 class="section-title">Уведомления</h2><div class="space-y-2">${html}</div></div>`;
+        }
+
+        async function markNotificationAsRead(id) {
+            const result = await apiRequest('mark_notification_read', { notification_id: id });
+            if (result.success) fetchNotifications();
+        }
+
+        function confirmClearNotifications() {
+            showModal('Очистить уведомления?', 'Вы уверены?', true, clearNotifications);
+        }
+
+        async function clearNotifications() {
+            const result = await apiRequest('clear_notifications');
+            if (result.success) fetchNotifications();
+        }
+
+        async function fetchChannels() {
+            const result = await apiRequest('get_channels');
+            if (result.success) channels = result.channels;
+        }
+
+        async function fetchGroups() {
+            const result = await apiRequest('get_groups');
+            if (result.success) groups = result.groups;
+        }
+
+        function renderChannelsGroupsView() {
+            const channelsHtml = channels.length > 0 ? channels.map(ch => {
+                const isAdmin = (ch.admins || []).includes(currentUser.id);
+                return `
+                    <div class="channel-item">
+                        <div class="flex items-center flex-1">
+                            <div class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center mr-3 text-xl">📢</div>
+                            <div>
+                                <h3 class="font-bold">${ch.name} ${isAdmin ? '<span class="admin-badge ml-2">Админ</span>' : ''}</h3>
+                                <p class="text-sm text-slate-400">${ch.description || 'Нет описания'}</p>
+                                <p class="text-xs text-slate-500 mt-1">@${ch.username} • Участников: ${ch.members?.length || 0}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <button class="primary-button text-sm px-4 py-2" onclick="switchScreen('chat_view', { chatId: '${ch.id}', chatName: '${ch.name}', chatType: 'channel' })">Открыть</button>
+                            <button class="join-link text-sm px-4 py-2" onclick="copyJoinLink('${ch.username}', 'channel')">Копировать ссылку</button>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<p class="text-slate-400 text-center py-8">Нет каналов</p>';
+
+            const groupsHtml = groups.length > 0 ? groups.map(g => `
+                <div class="group-item">
+                    <div class="flex items-center flex-1">
+                        <div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center mr-3 text-xl">👥</div>
+                        <div>
+                            <h3 class="font-bold">${g.name}</h3>
+                            <p class="text-sm text-slate-400">${g.description || 'Нет описания'}</p>
+                            <p class="text-xs text-slate-500 mt-1">@${g.username} • Участников: ${g.members?.length || 0}</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <button class="primary-button text-sm px-4 py-2" onclick="switchScreen('chat_view', { chatId: '${g.id}', chatName: '${g.name}', chatType: 'group' })">Открыть</button>
+                        <button class="join-link text-sm px-4 py-2" onclick="copyJoinLink('${g.username}', 'group')">Копировать ссылку</button>
+                    </div>
+                </div>
+            `).join('') : '<p class="text-slate-400 text-center py-8">Нет групп</p>';
+
+            const html = `
+                <div id="channels_groups_view" class="p-4 flex flex-col h-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="section-title">Сообщества</h2>
+                        <div class="flex gap-2">
+                            <button onclick="showJoinByLinkModal()" class="secondary-button text-sm">Присоединиться</button>
+                            <button onclick="showCreateCommunityModal()" class="primary-button text-sm">Создать</button>
+                        </div>
+                    </div>
+                    <div class="mb-6"><h3 class="text-xl font-bold mb-3">📢 Мои каналы</h3><div class="space-y-3">${channelsHtml}</div></div>
+                    <div class="mb-6"><h3 class="text-xl font-bold mb-3">👥 Мои группы</h3><div class="space-y-3">${groupsHtml}</div></div>
+                    <div class="mt-6"><h3 class="text-xl font-bold mb-3">🔍 Поиск сообществ</h3>
+                        <input type="text" id="community-search-input" placeholder="Введите название или username..." oninput="searchCommunities()" class="input-field mb-4">
+                        <div id="community-search-results" class="space-y-3"><p class="text-slate-400 text-center py-8">Начните вводить текст для поиска.</p></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="channels_groups_screen_content" class="screen-content">${html}</div>`;
+        }
+
+        function showCreateCommunityModal() {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = 'Создать сообщество';
+            document.getElementById('modal-message').innerHTML = `
+                <div class="space-y-3">
+                    <select id="community-type" class="input-field">
+                        <option value="channel">📢 Канал</option>
+                        <option value="group">👥 Группа</option>
+                    </select>
+                    <input type="text" id="community-name" placeholder="Название" class="input-field" maxlength="50">
+                    <textarea id="community-description" placeholder="Описание" class="input-field" rows="3" maxlength="200"></textarea>
+                </div>
+            `;
+            document.getElementById('modal-ok-button').classList.add('hidden');
+            document.getElementById('modal-confirm-buttons').classList.remove('hidden');
+            document.getElementById('modal-confirm-button').textContent = 'Создать';
+            document.getElementById('modal-confirm-button').onclick = () => {
+                const type = document.getElementById('community-type').value;
+                const name = document.getElementById('community-name').value.trim();
+                const desc = document.getElementById('community-description').value.trim();
+                if (name.length < 2) {
+                    showModal('Ошибка', 'Название должно содержать минимум 2 символа.');
+                    return;
+                }
+                modal.classList.add('hidden');
+                createCommunity(type, name, desc);
+            };
+            document.getElementById('modal-cancel-button').onclick = () => modal.classList.add('hidden');
+            modal.classList.remove('hidden');
+        }
+
+        function showJoinByLinkModal() {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = 'Присоединиться по ссылке';
+            document.getElementById('modal-message').innerHTML = `
+                <div class="space-y-3">
+                    <input type="text" id="community-username" placeholder="Введите username сообщества" class="input-field">
+                    <p class="text-sm text-slate-400">Пример: music_channel</p>
+                </div>
+            `;
+            document.getElementById('modal-ok-button').classList.add('hidden');
+            document.getElementById('modal-confirm-buttons').classList.remove('hidden');
+            document.getElementById('modal-confirm-button').textContent = 'Присоединиться';
+            document.getElementById('modal-confirm-button').onclick = () => {
+                const username = document.getElementById('community-username').value.trim().toLowerCase();
+                if (username.length < 2) {
+                    showModal('Ошибка', 'Введите username.');
+                    return;
+                }
+                modal.classList.add('hidden');
+                joinCommunityByUsername(username);
+            };
+            document.getElementById('modal-cancel-button').onclick = () => modal.classList.add('hidden');
+            modal.classList.remove('hidden');
+        }
+
+        async function createCommunity(type, name, description) {
+            const action = type === 'channel' ? 'create_channel' : 'create_group';
+            const result = await apiRequest(action, { name, description });
+            if (result.success) {
+                showModal('Успех!', `Вы создали ${type === 'channel' ? 'канал' : 'группу'} "${name}". Username: @${result.username}`, false, () => {
+                    fetchChannels();
+                    fetchGroups();
+                    renderChannelsGroupsView();
+                });
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось создать.');
+            }
+        }
+
+        async function joinCommunityByUsername(username) {
+            const result = await apiRequest('get_channel_group_by_username', { username });
+            if (result.success) {
+                const action = result.type === 'channel' ? 'join_channel' : 'join_group';
+                const joinResult = await apiRequest(action, { username });
+                if (joinResult.success) {
+                    showModal('Успех!', `Вы присоединились к ${result.type === 'channel' ? 'каналу' : 'группе'} "${result.data.name}".`, false, () => {
+                        fetchChannels();
+                        fetchGroups();
+                        fetchChats();
+                        renderChannelsGroupsView();
+                    });
+                } else {
+                    showModal('Ошибка', joinResult.error || 'Не удалось присоединиться.');
+                }
+            } else {
+                showModal('Ошибка', result.error || 'Сообщество не найдено.');
+            }
+        }
+
+        async function searchCommunities() {
+            const query = document.getElementById('community-search-input').value.trim();
+            const results = document.getElementById('community-search-results');
+            if (query.length < 2) {
+                results.innerHTML = '<p class="text-slate-400 text-center py-8">Начните вводить текст.</p>';
+                return;
+            }
+            results.innerHTML = '<p class="text-center py-4"><span class="loading-circle"></span> Поиск...</p>';
+            const result = await apiRequest('search_channels_groups', { query });
+            if (result.success && result.results.length > 0) {
+                const html = result.results.map(c => {
+                    const isChannel = c.type === 'channel';
+                    return `
+                        <div class="search-result-item">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center mr-3 text-lg">${isChannel ? '📢' : '👥'}</div>
+                                <div>
+                                    <h4 class="font-bold">${c.name}</h4>
+                                    <p class="text-sm text-slate-400">${isChannel ? 'Канал' : 'Группа'} • @${c.username}</p>
+                                    <p class="text-xs text-slate-500">Участников: ${c.members?.length || 0}</p>
+                                </div>
+                            </div>
+                            <button class="primary-button text-sm px-3 py-1" onclick="joinCommunityByUsername('${c.username}')">Присоединиться</button>
+                        </div>
+                    `;
+                }).join('');
+                results.innerHTML = html;
+            } else {
+                results.innerHTML = '<p class="text-red-400 text-center py-8">Сообщества не найдены.</p>';
+            }
+        }
+
+        function confirmLeaveCommunity(id, name, type) {
+            showModal(`Покинуть ${type === 'channel' ? 'канал' : 'группу'}?`, `Вы уверены, что хотите покинуть <strong>${name}</strong>?`, true, () => leaveCommunity(id, type));
+        }
+
+        async function leaveCommunity(id, type) {
+            const action = type === 'channel' ? 'leave_channel' : 'leave_group';
+            const result = await apiRequest(action, { chat_id: id });
+            if (result.success) {
+                showModal('Успех!', `Вы покинули ${type === 'channel' ? 'канал' : 'группу'}.`, false, () => {
+                    fetchChannels();
+                    fetchGroups();
+                    fetchChats();
+                    switchScreen('channels_groups');
+                });
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось покинуть.');
+            }
+        }
+
+        async function showChannelSettings(channelId, channelName) {
+            const result = await apiRequest('get_channel_settings', { channel_id: channelId });
+            if (result.success) {
+                const modal = document.getElementById('channel-settings-modal');
+                const content = document.getElementById('channel-settings-content');
+                document.getElementById('channel-settings-title').textContent = `Настройки: ${channelName}`;
+                content.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="settings-item">
+                            <div class="flex-1">
+                                <h4 class="font-bold">Разрешить всем писать</h4>
+                                <p class="text-sm text-slate-400">Если выключено, только администраторы могут писать</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="allow-all-write" ${result.settings.allow_all_write ? 'checked' : ''} onchange="updateChannelSettings('${channelId}')">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="card">
+                            <h4 class="font-bold mb-3">Администраторы (${result.admins.length})</h4>
+                            <div id="admins-list" class="space-y-2">
+                                ${result.admins.map(admin => `
+                                    <div class="flex items-center justify-between p-2 bg-slate-800 rounded">
+                                        <div class="flex items-center">
+                                            <img src="${admin.avatar}" alt="Аватар" class="w-8 h-8 rounded-full mr-2">
+                                            <div>
+                                                <p class="font-semibold">${admin.name}</p>
+                                                <p class="text-xs text-slate-400">@${admin.username}</p>
+                                            </div>
+                                        </div>
+                                        <span class="admin-badge">Админ</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="font-bold">Участники (${result.members_count})</h4>
+                                <button class="primary-button text-sm px-3 py-1" onclick="showChannelMembers('${channelId}', '${channelName.replace(/'/g, "\\'")}')">Управление</button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h4 class="font-bold mb-3">Добавить администратора</h4>
+                            <input type="text" id="new-admin-search" placeholder="Введите логин" class="input-field mb-2">
+                            <button class="primary-button w-full text-sm" onclick="searchAndAddAdmin('${channelId}')">Найти и добавить</button>
+                        </div>
+                    </div>
+                `;
+                modal.classList.remove('hidden');
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось загрузить настройки.');
+            }
+        }
+
+        async function updateChannelSettings(channelId) {
+            const allow = document.getElementById('allow-all-write').checked;
+            const result = await apiRequest('update_channel_settings', { channel_id: channelId, allow_all_write: allow.toString() });
+            if (!result.success) {
+                document.getElementById('allow-all-write').checked = !allow;
+                showModal('Ошибка', result.error || 'Не удалось обновить настройки.');
+            }
+        }
+
+        async function searchAndAddAdmin(channelId) {
+            const username = document.getElementById('new-admin-search').value.trim();
+            if (!username) {
+                showModal('Ошибка', 'Введите логин.');
+                return;
+            }
+            const search = await apiRequest('search_users', { query: username });
+            if (search.success && search.users.length > 0) {
+                const user = search.users[0];
+                showModal('Добавить администратора?', `Назначить <strong>${user.name}</strong> (@${user.username}) администратором?`, true, async () => {
+                    const result = await apiRequest('add_channel_admin', { channel_id: channelId, target_user_id: user.id });
+                    if (result.success) {
+                        showModal('Успех', `${user.name} теперь администратор.`, false, () => {
+                            const name = document.getElementById('channel-settings-title').textContent.replace('Настройки: ', '');
+                            showChannelSettings(channelId, name);
+                        });
+                    } else {
+                        showModal('Ошибка', result.error || 'Не удалось добавить.');
+                    }
+                });
+            } else {
+                showModal('Ошибка', 'Пользователь не найден.');
+            }
+        }
+
+        async function showChannelMembers(channelId, channelName) {
+            const result = await apiRequest('get_channel_members', { channel_id: channelId });
+            if (result.success) {
+                const modal = document.getElementById('custom-modal');
+                document.getElementById('modal-title').textContent = `Участники: ${channelName}`;
+                const membersHtml = result.members.length > 0 ? result.members.map(m => `
+                    <div class="member-item">
+                        <div class="flex items-center">
+                            <img src="${m.avatar}" alt="Аватар" class="w-10 h-10 rounded-full mr-3">
+                            <div>
+                                <p class="font-semibold">${m.name}</p>
+                                <p class="text-sm text-slate-400">@${m.username}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            ${m.is_admin ? '<span class="admin-badge">Админ</span>' : ''}
+                            ${!m.is_admin ? `<button class="primary-button text-sm px-3 py-1" onclick="addAsAdmin('${channelId}', '${m.id}', '${m.name.replace(/'/g, "\\'")}')">Сделать админом</button>` : ''}
+                        </div>
+                    </div>
+                `).join('') : '<p class="text-slate-400 text-center py-4">Участников нет.</p>';
+                document.getElementById('modal-message').innerHTML = `<div class="max-h-96 overflow-y-auto">${membersHtml}</div>`;
+                document.getElementById('modal-ok-button').classList.remove('hidden');
+                document.getElementById('modal-confirm-buttons').classList.add('hidden');
+                document.getElementById('modal-ok-button').onclick = () => modal.classList.add('hidden');
+                modal.classList.remove('hidden');
+            }
+        }
+
+        async function addAsAdmin(channelId, userId, userName) {
+            showModal('Добавить администратора?', `Назначить <strong>${userName}</strong> администратором?`, true, async () => {
+                const result = await apiRequest('add_channel_admin', { channel_id: channelId, target_user_id: userId });
+                if (result.success) {
+                    showModal('Успех', `${userName} теперь администратор.`, false, () => {
+                        const name = document.getElementById('modal-title').textContent.replace('Участники: ', '');
+                        showChannelMembers(channelId, name);
+                    });
+                } else {
+                    showModal('Ошибка', result.error || 'Не удалось добавить.');
+                }
+            });
+        }
+
+        async function showActiveSessions() {
+            const result = await apiRequest('get_active_sessions');
+            if (result.success) {
+                const modal = document.getElementById('custom-modal');
+                document.getElementById('modal-title').textContent = 'Активные сессии';
+                const sessionsHtml = result.sessions.length > 0 ? result.sessions.map(s => `
+                    <div class="session-item ${s.is_current ? 'current-session' : ''}">
+                        <div class="flex items-center flex-1">
+                            <span class="device-icon text-2xl mr-3">${s.device_type === 'Mobile' ? '📱' : s.device_type === 'Tablet' ? '📟' : '💻'}</span>
+                            <div>
+                                <p class="font-semibold">${s.device_type} • ${s.browser}</p>
+                                <p class="text-sm text-slate-400">IP: ${s.ip}</p>
+                                <p class="text-xs text-slate-500">Вход: ${s.login_time_formatted} | Активность: ${s.last_activity_formatted}</p>
+                            </div>
+                        </div>
+                        ${s.is_current ? '<span class="admin-badge bg-green-600">Текущая</span>' : ''}
+                    </div>
+                `).join('') : '<p class="text-slate-400 text-center py-4">Нет сессий.</p>';
+                document.getElementById('modal-message').innerHTML = `<div class="mb-4"><p class="text-sm text-slate-400">Активные сессии за последние 24 часа.</p></div><div class="max-h-96 overflow-y-auto">${sessionsHtml}</div>`;
+                document.getElementById('modal-ok-button').classList.remove('hidden');
+                document.getElementById('modal-confirm-buttons').classList.add('hidden');
+                document.getElementById('modal-ok-button').onclick = () => modal.classList.add('hidden');
+                modal.classList.remove('hidden');
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось загрузить сессии.');
+            }
+        }
+
+        async function showUserProfileModal(userId) {
+            const result = await apiRequest('get_user_profile', { user_id: userId });
+            if (result.success) {
+                const user = result.user;
+                document.getElementById('modal-profile-avatar').src = user.avatar;
+                document.getElementById('modal-profile-name').textContent = user.name;
+                document.getElementById('modal-profile-username').textContent = `@${user.username}`;
+                document.getElementById('modal-profile-bio').textContent = user.bio;
+                const gifts = document.getElementById('modal-profile-gifts');
+                if (user.gifts && Object.keys(user.gifts).length > 0) {
+                    const counts = {};
+                    for (let key in user.gifts) {
+                        const emoji = typeof user.gifts[key] === 'string' ? user.gifts[key] : user.gifts[key].emoji;
+                        counts[emoji] = (counts[emoji] || 0) + 1;
+                    }
+                    gifts.innerHTML = Object.keys(counts).map(e => `<p class="text-base font-semibold">${e} x ${counts[e]}</p>`).join('');
+                } else {
+                    gifts.innerHTML = '<p class="text-slate-500">Подарков нет.</p>';
+                }
+                if (currentUser.is_moderator && user.id !== currentUser.id) {
+                    const btn = document.createElement('button');
+                    btn.className = 'primary-button bg-red-600 hover:bg-red-700 mt-4 w-full block-button';
+                    btn.textContent = '🚫 Заблокировать пользователя';
+                    btn.onclick = () => {
+                        document.getElementById('user-profile-modal').classList.add('hidden');
+                        blockUser(user.id, user.name);
+                    };
+                    const modal = document.querySelector('#user-profile-modal .modal-content');
+                    if (!modal.querySelector('.block-button')) modal.appendChild(btn);
+                }
+                document.getElementById('user-profile-modal').classList.remove('hidden');
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось загрузить профиль.');
+            }
+        }
+
+        function renderEditProfileView() {
+            const html = `
+                <div id="edit_profile_view" class="flex flex-col h-full p-6">
+                    <div class="flex items-center p-3 bg-slate-900 shadow-md flex-shrink-0 mb-4">
+                        <button onclick="switchScreen('profile')" class="text-primary text-xl mr-3">←</button>
+                        <h2 class="text-2xl font-bold">Изменить профиль</h2>
+                    </div>
+                    <div class="w-full max-w-sm space-y-4 mx-auto text-center flex-grow overflow-y-auto">
+                        <p class="text-slate-400 text-sm mb-4">Ваш логин: <strong>@${currentUser.username}</strong></p>
+                        <img id="avatar-preview" src="${currentUser.avatar || 'default.png'}" alt="Аватар" class="avatar-preview mx-auto mb-4">
+                        <input type="file" id="avatar-upload" accept="image/*" class="hidden" onchange="previewAvatar(this.files[0])">
+                        <label for="avatar-upload" class="secondary-button cursor-pointer inline-block">Выбрать новый аватар</label>
+                        <input type="text" id="display-name" placeholder="Отображаемое имя" value="${currentUser.name || ''}" maxlength="30" class="input-field">
+                        <textarea id="profile-bio" placeholder="Описание профиля" maxlength="200" class="input-field h-24 resize-none">${currentUser.bio || ''}</textarea>
+                        <p class="text-xs text-slate-500 text-left">${(currentUser.bio || '').length}/200</p>
+                        <p id="edit-status" class="text-center text-sm text-red-400 h-5"></p>
+                        <button id="update-button" class="primary-button w-full mt-6" onclick="updateProfile()">Сохранить изменения</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="edit_profile_screen_content" class="screen-content">${html}</div>`;
+        }
+
+        async function updateProfile() {
+            const name = document.getElementById('display-name').value.trim();
+            const bio = document.getElementById('profile-bio').value.trim();
+            const file = document.getElementById('avatar-upload').files[0];
+            if (name.length < 1) {
+                document.getElementById('edit-status').textContent = 'Имя не может быть пустым.';
+                return;
+            }
+            const formData = new FormData();
+            formData.append('action', 'update_profile');
+            formData.append('name', name);
+            formData.append('bio', bio);
+            if (file) formData.append('avatar', file);
+            const result = await apiRequest('update_profile', formData, true);
+            if (result.success) {
+                currentUser.name = name;
+                currentUser.bio = bio;
+                if (result.new_avatar) currentUser.avatar = result.new_avatar;
+                showModal('Успех!', `Профиль обновлен.`, false, () => switchScreen('profile'));
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось обновить.');
+            }
+        }
+
+        function renderProfileView() {
+            const html = `
+                <div id="profile_view" class="p-4 flex flex-col h-full overflow-y-auto">
+                    <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                        <h2 class="text-2xl font-bold">Мой профиль</h2>
+                        <div class="flex gap-2">
+                            <button class="text-xl text-slate-400 hover:text-primary" onclick="switchScreen('edit_profile')">✏️</button>
+                            <button class="text-xl text-slate-400 hover:text-primary" onclick="switchScreen('settings')">⚙️</button>
+                        </div>
+                    </div>
+                    <div class="card flex items-center mb-6">
+                        <img src="${currentUser.avatar || 'default.png'}" alt="Аватар" class="avatar-preview mr-4">
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold">${currentUser.name}</h3>
+                            <p class="text-slate-400 text-sm">@${currentUser.username} ${currentUser.is_moderator ? '<span class="text-red-500 font-semibold">(Модератор)</span>' : ''}</p>
+                            <p class="text-slate-500 text-sm mt-2">${currentUser.bio || 'Описание не указано'}</p>
+                        </div>
+                    </div>
+                    <div class="mb-6 card flex justify-between items-center">
+                        <span class="text-lg font-semibold">Баланс звезд:</span>
+                        <span class="stars-badge">${currentUser.stars ?? 0} ⭐</span>
+                    </div>
+                    <div class="card mb-6">
+                        <h3 class="text-xl font-bold mb-3 border-b border-slate-700 pb-2">Безопасность</h3>
+                        <div class="space-y-3">
+                            <button class="primary-button w-full bg-blue-600 hover:bg-blue-700" onclick="showActiveSessions()">🔐 Активные сессии</button>
+                            <button class="primary-button w-full bg-green-600 hover:bg-green-700" onclick="switchScreen('chat_view', { chatId: 'security_bot_${currentUser.id}', chatName: 'MeiChat', chatType: 'bot', isBotChat: true })">🤖 Чат с ботом MeiChat</button>
+                            ${currentUser.is_moderator ? `
+                                <button class="primary-button w-full bg-red-600 hover:bg-red-700" onclick="showBlockedUsers()">🚫 Управление блокировками</button>
+                                <button class="primary-button w-full bg-red-600 hover:bg-red-700" onclick="showStarMenu()">⭐ Выдача звёзд</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 border-t border-slate-700 pt-4">Инвентарь подарков</h3>
+                    <div id="gifts-inventory" class="space-y-3">${renderGiftsInventory(currentUser.gifts)}</div>
+                    ${currentUser.is_moderator ? `<button class="primary-button mt-4 mb-3 bg-red-800 hover:bg-red-900 w-full" onclick="confirmClearChat()">🔴 Очистить общий чат</button>` : ''}
+                    <button class="primary-button mt-auto mb-2 bg-red-600 hover:bg-red-700" onclick="logout()">Выход</button>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="profile_screen_content" class="screen-content">${html}</div>`;
+        }
+
+        function renderSettingsView() {
+            const theme = localStorage.getItem('Mei_theme') || 'dark';
+            const html = `
+                <div id="settings_view" class="p-4 flex flex-col h-full overflow-y-auto">
+                    <div class="flex items-center p-3 bg-slate-900 shadow-md flex-shrink-0 mb-4">
+                        <button onclick="switchScreen('profile')" class="text-primary text-xl mr-3">←</button>
+                        <h2 class="text-2xl font-bold">Настройки</h2>
+                    </div>
+                    <div class="card mb-6">
+                        <h3 class="text-xl font-bold mb-4 border-b border-slate-700 pb-2">Тема оформления</h3>
+                        <div class="space-y-3">
+                            <div class="settings-item">
+                                <div class="flex items-center"><span class="text-2xl mr-3">🌙</span><div><h4 class="font-bold">Темная тема</h4><p class="text-sm text-slate-400">Классическая темная</p></div></div>
+                                <input type="radio" name="theme" value="dark" ${theme === 'dark' ? 'checked' : ''} onchange="changeTheme('dark')" class="w-5 h-5">
+                            </div>
+                            <div class="settings-item">
+                                <div class="flex items-center"><span class="text-2xl mr-3">☀️</span><div><h4 class="font-bold">Светлая тема</h4><p class="text-sm text-slate-400">Светлая тема</p></div></div>
+                                <input type="radio" name="theme" value="light" ${theme === 'light' ? 'checked' : ''} onchange="changeTheme('light')" class="w-5 h-5">
+                            </div>
+                            <div class="settings-item">
+                                <div class="flex items-center"><span class="text-2xl mr-3">🌚</span><div><h4 class="font-bold">Темная OLED</h4><p class="text-sm text-slate-400">Истинно черная</p></div></div>
+                                <input type="radio" name="theme" value="oled" ${theme === 'oled' ? 'checked' : ''} onchange="changeTheme('oled')" class="w-5 h-5">
+                            </div>
+                            <div class="settings-item">
+                                <div class="flex items-center"><span class="text-2xl mr-3">🌊</span><div><h4 class="font-bold">Синяя тема</h4><p class="text-sm text-slate-400">Синие акценты</p></div></div>
+                                <input type="radio" name="theme" value="blue" ${theme === 'blue' ? 'checked' : ''} onchange="changeTheme('blue')" class="w-5 h-5">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mb-6">
+                        <h3 class="text-xl font-bold mb-4 border-b border-slate-700 pb-2">Уведомления</h3>
+                        <div class="settings-item">
+                            <div class="flex-1"><h4 class="font-bold">Push-уведомления</h4><p class="text-sm text-slate-400">Получать уведомления</p></div>
+                            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="settings-item">
+                            <div class="flex-1"><h4 class="font-bold">Звук</h4><p class="text-sm text-slate-400">Звук при сообщении</p></div>
+                            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+                        </div>
+                    </div>
+                    <div class="card mb-6">
+                        <h3 class="text-xl font-bold mb-4 border-b border-slate-700 pb-2">О приложении</h3>
+                        <div class="settings-item"><div class="flex-1"><h4 class="font-bold">Версия</h4><p class="text-sm text-slate-400">WebMeiChat 1.1.6</p></div></div>
+                        <div class="settings-item"><div class="flex-1"><h4 class="font-bold">Сборка</h4><p class="text-sm text-slate-400">#${Math.random().toString(36).substr(2,8).toUpperCase()}</p></div></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="settings_screen_content" class="screen-content">${html}</div>`;
+        }
+
+        function renderShopView() {
+            const html = `
+                <div id="shop_view" class="p-4 flex flex-col h-full overflow-y-auto">
+                    <h2 class="section-title">Магазин подарков</h2>
+                    <div class="mb-6 card flex justify-between items-center">
+                        <span class="text-lg font-semibold">Ваш баланс:</span>
+                        <span id="shop-stars-balance" class="stars-badge">${currentUser.stars ?? 0} ⭐</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Доступные подарки</h3>
+                    <div id="gift-shop-list" class="grid grid-cols-2 gap-4">
+                        ${Object.keys(GIFTS_STORE).map(key => {
+                            const g = GIFTS_STORE[key];
+                            const canAfford = (currentUser.stars ?? 0) >= g.price;
+                            return `
+                                <div class="gift-item">
+                                    <span class="text-4xl mb-2">${g.emoji}</span>
+                                    <h4 class="font-bold text-lg">${g.name}</h4>
+                                    <p class="text-yellow-400 font-semibold mb-3">${g.price} ⭐</p>
+                                    <button class="primary-button w-full ${!canAfford ? 'disabled' : ''}" onclick="attemptBuyGift('${key}', ${g.price})" ${!canAfford ? 'disabled' : ''}>Купить (${g.price} ⭐)</button>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            document.getElementById('screen-container').innerHTML = `<div id="shop_screen_content" class="screen-content">${html}</div>`;
+        }
+
+        async function attemptBuyGift(key, price) {
+            showModal('Подтверждение', `Купить ${GIFTS_STORE[key].emoji} ${GIFTS_STORE[key].name} за ${price} ⭐?`, true, async () => {
+                const result = await apiRequest('buy_gift', { gift_key: key });
+                if (result.success) {
+                    currentUser.stars = result.new_stars;
+                    showModal('Куплено!', `Вы купили ${result.gift_emoji} ${result.gift_name}. Баланс: ${result.new_stars} ⭐.`, false, () => {
+                        switchScreen('gift_search', { key: result.gift_key, emoji: result.gift_emoji, name: result.gift_name });
+                    });
+                } else {
+                    showModal('Ошибка', result.error || 'Не удалось купить.');
+                }
+            });
+        }
+
+        async function sendGiftToRecipient(recipientId, key, emoji, name, recipientName) {
+            document.getElementById('custom-modal')?.classList.add('hidden');
+            const result = await apiRequest('send_gift', { recipient_id: recipientId, gift_key: key, gift_emoji: emoji, gift_name: name });
+            if (result.success) {
+                if (result.is_self) {
+                    showModal('Подарок себе!', `Вы добавили ${emoji} ${name} в инвентарь!`, false, () => switchScreen('profile'));
+                } else {
+                    showModal('Отправлено!', `Вы подарили ${emoji} ${name} пользователю ${result.recipient_name}!`, false, () => switchScreen('chats_list'));
+                }
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось отправить.');
+            }
+        }
+
+        function renderGiftsInventory(gifts) {
+            if (!gifts || Object.keys(gifts).length === 0) return '<p class="text-slate-400 text-sm">Инвентарь пуст.</p>';
+            const groups = {};
+            for (let id in gifts) {
+                const g = gifts[id];
+                const emoji = typeof g === 'string' ? g : g.emoji;
+                const key = Object.keys(GIFTS_STORE).find(k => GIFTS_STORE[k].emoji === emoji);
+                if (key) {
+                    if (!groups[key]) groups[key] = { emoji, name: GIFTS_STORE[key].name, price: Math.floor(GIFTS_STORE[key].price * 0.5), count: 0, ids: [] };
+                    groups[key].count++;
+                    groups[key].ids.push(id);
+                }
+            }
+            return Object.keys(groups).map(key => `
+                <div class="inventory-item">
+                    <div class="flex items-center">
+                        <span class="text-2xl mr-3">${groups[key].emoji}</span>
+                        <div><h4 class="font-bold">${groups[key].name}</h4><p class="text-sm text-slate-400">В инвентаре: <strong>x${groups[key].count}</strong></p></div>
+                    </div>
+                    <button class="primary-button bg-yellow-600 hover:bg-yellow-700 text-sm px-3 py-1" onclick="attemptSellGift('${groups[key].ids[0]}', ${groups[key].price}, '${groups[key].emoji}', '${groups[key].name}')">Продать (${groups[key].price} ⭐)</button>
+                </div>
+            `).join('');
+        }
+
+        async function attemptSellGift(id, price, emoji, name) {
+            showModal('Продать?', `Продать один ${emoji} ${name} за ${price} ⭐?`, true, async () => {
+                const result = await apiRequest('sell_gift', { gift_id: id });
+                if (result.success) {
+                    currentUser.stars = result.new_stars;
+                    delete currentUser.gifts[id];
+                    showModal('Продано!', `Вы продали ${emoji} ${name}. Баланс: ${result.new_stars} ⭐.`, false, renderProfileView);
+                } else {
+                    showModal('Ошибка', result.error || 'Не удалось продать.');
+                }
+            });
+        }
+
+        function confirmClearChat() {
+            showModal('Очистить общий чат?', 'Это действие необратимо.', true, clearGeneralChat);
+        }
+
+        async function clearGeneralChat() {
+            const result = await apiRequest('clear_general_chat');
+            if (result.success) {
+                showModal('Успех', `Общий чат очищен. Удалено сообщений: ${result.count}.`, false, () => {
+                    if (currentChatData.chatId === 'general') fetchMessages(currentChatData.chatId, true);
+                });
+            } else {
+                showModal('Ошибка', result.error || 'Не удалось очистить.');
+            }
+        }
+
+        let currentScreen = 'loading';
+        let currentChatData = {};
+
+        function renderAndAnimateNewScreen(screenName, data) {
+            if (screenName === 'welcome') renderWelcomeScreen();
+            else if (screenName === 'setup') renderSetupScreen();
+            else if (screenName === 'chats_list') renderChatsList();
+            else if (screenName === 'chat_view') renderChatView(data);
+            else if (screenName === 'profile') renderProfileView();
+            else if (screenName === 'edit_profile') renderEditProfileView();
+            else if (screenName === 'shop') renderShopView();
+            else if (screenName === 'add_chat') renderAddChatView();
+            else if (screenName === 'gift_search') renderSearchUsersView('gift_search', data);
+            else if (screenName === 'notifications') renderNotificationsView();
+            else if (screenName === 'news') renderNewsView();
+            else if (screenName === 'channels_groups') renderChannelsGroupsView();
+            else if (screenName === 'settings') renderSettingsView();
+            
+            const el = document.getElementById('screen-container').firstElementChild;
+            if (el) {
+                el.classList.add('screen-enter-start');
+                void el.offsetWidth;
+                el.classList.remove('screen-enter-start');
+                el.classList.add('screen-enter-end');
+            }
+            if (screenName === 'chats_list') fetchChats();
+            else if (screenName === 'notifications') fetchNotifications();
+            else if (screenName === 'news') fetchNews();
+            else if (screenName === 'channels_groups') { fetchChannels(); fetchGroups(); }
+        }
+
+        function switchScreen(screenName, data = {}) {
+            if (messagesPollInterval) { clearInterval(messagesPollInterval); messagesPollInterval = null; }
+            const tabBar = document.getElementById('tab-bar');
+            if (['welcome','setup'].includes(screenName)) tabBar.style.display = 'none';
+            else {
+                tabBar.style.display = 'flex';
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active-tab');
+                    if (btn.getAttribute('data-tab') === screenName || 
+                        (screenName === 'edit_profile' && btn.getAttribute('data-tab') === 'profile') ||
+                        (screenName === 'gift_search' && btn.getAttribute('data-tab') === 'shop') ||
+                        (screenName === 'settings' && btn.getAttribute('data-tab') === 'profile')) {
+                        btn.classList.add('active-tab');
+                    }
+                });
+            }
+            const prevEl = document.getElementById('screen-container').firstElementChild;
+            const prev = currentScreen;
+            currentScreen = screenName;
+            currentChatId = data.chatId || null;
+            currentChatData = data;
+            if (prevEl && !['welcome','setup'].includes(prev)) {
+                prevEl.classList.add('screen-leave-end');
+                setTimeout(() => {
+                    document.getElementById('screen-container').innerHTML = '';
+                    renderAndAnimateNewScreen(screenName, data);
+                }, 300);
+            } else {
+                document.getElementById('screen-container').innerHTML = '';
+                renderAndAnimateNewScreen(screenName, data);
+            }
+        }
+
+        async function checkAuthAndRoute() {
+            const auth = await apiRequest('get_current_user');
+            if (auth.logged_in) {
+                currentUser = auth.user;
+                if (auth.setup_needed) switchScreen('setup');
+                else {
+                    switchScreen('chats_list');
+                    notificationsPollInterval = setInterval(fetchNotifications, notificationsPollRate);
+                    handleJoinLinks();
+                }
+            } else switchScreen('welcome');
+        }
+
+        document.getElementById('tab-bar').addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-button');
+            if (btn) switchScreen(btn.getAttribute('data-tab'));
+        });
+
+        checkAuthAndRoute();
+    </script>
+</body>
+</html>
